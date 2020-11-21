@@ -15,14 +15,16 @@ import {
   CacheExpression,
   createCacheExpression,
   TemplateLiteral,
-  createVNodeCall
+  createVNodeCall,
+  ConstantTypes
 } from './ast'
 import {
   isString,
   isArray,
   NOOP,
   PatchFlags,
-  PatchFlagNames
+  PatchFlagNames,
+  EMPTY_OBJ
 } from '@vue/shared'
 import { defaultOnError } from './errors'
 import {
@@ -122,7 +124,9 @@ export function createTransformContext(
     scopeId = null,
     ssr = false,
     ssrCssVars = ``,
-    bindingMetadata = {},
+    bindingMetadata = EMPTY_OBJ,
+    inline = false,
+    isTS = false,
     onError = defaultOnError
   }: TransformOptions
 ): TransformContext {
@@ -141,6 +145,8 @@ export function createTransformContext(
     ssr,
     ssrCssVars,
     bindingMetadata,
+    inline,
+    isTS,
     onError,
 
     // state
@@ -240,7 +246,7 @@ export function createTransformContext(
         `_hoisted_${context.hoists.length}`,
         false,
         exp.loc,
-        true
+        ConstantTypes.CAN_HOIST
       )
       identifier.hoisted = exp
       return identifier
