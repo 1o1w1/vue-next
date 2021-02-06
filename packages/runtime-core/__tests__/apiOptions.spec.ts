@@ -8,7 +8,8 @@ import {
   nextTick,
   renderToString,
   ref,
-  defineComponent
+  defineComponent,
+  createApp
 } from '@vue/runtime-test'
 
 describe('api: options', () => {
@@ -103,6 +104,24 @@ describe('api: options', () => {
     triggerEvent(root.children[0] as TestElement, 'click')
     await nextTick()
     expect(serializeInner(root)).toBe(`<div>2</div>`)
+  })
+
+  test('component’s own methods have higher priority than global properties', async () => {
+    const app = createApp({
+      methods: {
+        foo() {
+          return 'foo'
+        }
+      },
+      render() {
+        return this.foo()
+      }
+    })
+    app.config.globalProperties.foo = () => 'bar'
+
+    const root = nodeOps.createElement('div')
+    app.mount(root)
+    expect(serializeInner(root)).toBe(`foo`)
   })
 
   test('watch', async () => {
@@ -251,6 +270,7 @@ describe('api: options', () => {
   })
 
   test('provide/inject', () => {
+    const symbolKey = Symbol()
     const Root = defineComponent({
       data() {
         return {
@@ -259,7 +279,8 @@ describe('api: options', () => {
       },
       provide() {
         return {
-          a: this.a
+          a: this.a,
+          [symbolKey]: 2
         }
       },
       render() {
@@ -271,7 +292,9 @@ describe('api: options', () => {
           h(ChildE),
           h(ChildF),
           h(ChildG),
-          h(ChildH)
+          h(ChildH),
+          h(ChildI),
+          h(ChildJ)
         ]
       }
     })
@@ -321,7 +344,15 @@ describe('api: options', () => {
         default: () => 5
       }
     })
-    expect(renderToString(h(Root))).toBe(`11112345`)
+    const ChildI = defineChild({
+      b: symbolKey
+    })
+    const ChildJ = defineChild({
+      b: {
+        from: symbolKey
+      }
+    })
+    expect(renderToString(h(Root))).toBe(`1111234522`)
   })
 
   test('provide accessing data in extends', () => {
